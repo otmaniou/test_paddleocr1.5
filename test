@@ -1,26 +1,38 @@
-
-from transformers import AutoProcessor, AutoModelForCausalLM
+from PIL import Image
 import torch
 import time
 
+IMAGE_PATH = "/chemin/vers/une_image_test.jpg"
+
+image = Image.open(IMAGE_PATH).convert("RGB")
+
+prompt = "OCR:"
+
+inputs = processor(
+    images=image,
+    text=prompt,
+    return_tensors="pt"
+)
+
+inputs = {
+    k: v.to("cuda") if torch.is_tensor(v) else v
+    for k, v in inputs.items()
+}
+
 t0 = time.time()
 
-processor = AutoProcessor.from_pretrained(
-    MODEL_PATH,
-    trust_remote_code=True,
-    local_files_only=True,
-)
+with torch.inference_mode():
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=2048,
+        do_sample=False
+    )
 
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_PATH,
-    torch_dtype=torch.bfloat16,
-    trust_remote_code=True,
-    local_files_only=True,
-    low_cpu_mem_usage=True,
-)
+result = processor.batch_decode(
+    outputs,
+    skip_special_tokens=True
+)[0]
 
-model = model.to("cuda").eval()
-
-print("Chargé en", round(time.time() - t0, 1), "s")
-print(type(processor))
-print(type(model))
+print("Temps :", round(time.time() - t0, 2), "s")
+print("\n===== RESULTAT =====\n")
+print(result)
