@@ -36,3 +36,102 @@ result = processor.batch_decode(
 print("Temps :", round(time.time() - t0, 2), "s")
 print("\n===== RESULTAT =====\n")
 print(result)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from PIL import Image
+import torch
+import time
+
+IMAGE_PATH = "/chemin/vers/ton_image.jpg"
+
+image = Image.open(IMAGE_PATH).convert("RGB")
+
+messages = [
+    {
+        "role": "user",
+        "content": [
+            {"type": "image", "image": image},
+            {"type": "text", "text": "OCR:"},
+        ],
+    }
+]
+
+prompt = processor.apply_chat_template(
+    messages,
+    tokenize=False,
+    add_generation_prompt=True,
+)
+
+print(prompt)
+
+
+
+
+
+
+
+
+
+
+
+
+inputs = processor(
+    text=prompt,
+    images=[image],
+    return_tensors="pt",
+)
+
+inputs = {
+    k: v.to("cuda") if torch.is_tensor(v) else v
+    for k, v in inputs.items()
+}
+
+t0 = time.time()
+
+with torch.inference_mode():
+    generated_ids = model.generate(
+        **inputs,
+        max_new_tokens=2048,
+        do_sample=False,
+    )
+
+# Retirer les tokens du prompt pour ne garder que la réponse
+input_len = inputs["input_ids"].shape[1]
+
+generated_ids = generated_ids[:, input_len:]
+
+result = processor.batch_decode(
+    generated_ids,
+    skip_special_tokens=True,
+    clean_up_tokenization_spaces=False,
+)[0]
+
+print("Temps :", round(time.time() - t0, 2), "s")
+print("\n===== RESULTAT =====\n")
+print(result)
+
+
+
+
+
+
+
+
+
+
+
